@@ -63,13 +63,16 @@ evaluatePhong :: Scene -> Material -> Vec -> Vec -> Vec -> Colour
 evaluatePhong scene None p d n = black
 evaluatePhong scene (Mat kA kD kS nP) p d n = foldl cAdd black (map contr (lights scene))
   where
-    contr l = contrDiff l `cAdd` contrAmb l `cAdd` contrSpec l
-    contrAmb light = (kA * getI light) `Mats.scale` getCol light
-    contrDiff light = if isVisible scene pl p then max 0 (kD * cosTheta) `Mats.scale` getInt light p else black
+    contr light = contrDiff `cAdd` contrAmb `cAdd` contrSpec
       where
         pl = getPos light
-        cosTheta = n `dot` normalize (p `sub` pl)
-    contrSpec light = black
+        l = normalize (p `sub` pl)
+        cosTheta = n `dot` l
+        rv = ((2 * (d `dot` n)) `Vecs.scale` n) `sub` d
+        cosAlpha = inv l `dot` rv
+        contrAmb = (kA * getI light) `Mats.scale` getCol light
+        contrDiff = if isVisible scene pl p then max 0 (kD * cosTheta) `Mats.scale` getInt light p else black
+        contrSpec = ((max 0 kS * cosAlpha) ^ nP) `Mats.scale` getInt light p
 
 --Debug.trace (show (isVisible scene pl p)) $ (\x -> Debug.trace (show x) x) $
 
@@ -93,4 +96,4 @@ main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 50 (40 / 9) 1 cam
         ]
         [Point (Vec3 3 (-1) 2) white 40, Point (Vec3 (-1) 2 10) white 20]
     cam = calculateCam o3 up3 forward3
-    dW = Mat 0.01 1 1 12
+    dW = Mat 0.01 1 1 120

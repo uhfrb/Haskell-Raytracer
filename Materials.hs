@@ -15,7 +15,7 @@ data Material
       { kA :: Float,
         kD :: Float,
         kS :: Float,
-        n :: Float
+        n :: Int
       }
   deriving (Show)
 
