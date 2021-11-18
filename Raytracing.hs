@@ -72,7 +72,7 @@ evaluatePhong scene (Mat kA kD kS nP) p d n = foldl cAdd black (map contr (light
         cosAlpha = inv l `dot` rv
         contrAmb = (kA * getI light) `Mats.scale` getCol light
         contrDiff = if isVisible scene pl p then max 0 (kD * cosTheta) `Mats.scale` getInt light p else black
-        contrSpec = ((max 0 kS * cosAlpha) ^ nP) `Mats.scale` getInt light p
+        contrSpec = if isVisible scene pl p then ((max 0 kS * cosAlpha) ^ nP) `Mats.scale` getInt light p else black
 
 --Debug.trace (show (isVisible scene pl p)) $ (\x -> Debug.trace (show x) x) $
 
