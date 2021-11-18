@@ -12,6 +12,7 @@ data IntersectionResult = IR
     iN :: Vec,
     iMat :: Material
   }
+  deriving (Show)
 
 intersect :: Ray -> Shape -> Maybe IntersectionResult
 intersect (Ray e d) (Sphere p r mat)
