@@ -2,7 +2,10 @@ module Vectors where
 
 import Control.Arrow (ArrowChoice (left))
 
-data Vec = Vec3 Float Float Float
+data Vec = Vec3 {
+  x ::Float,
+  y:: Float,
+  z:: Float}
 
 left3 :: Vec
 left3 = Vec3 1 0 0

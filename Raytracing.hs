@@ -12,6 +12,8 @@ import View
 
 numRecs :: Int
 numRecs = 3
+eps :: Float
+eps = 0.001
 
 data Camera = Cam
   { cE :: Vec,
@@ -29,10 +31,11 @@ data Scene = Scene
   }
 
 calculateCam :: Vec -> Vec -> Vec -> Camera
-calculateCam pos up target = Cam pos target up w u (normalize (w `cross` u))
+calculateCam pos up target = Cam pos target up w u v
   where
     w = normalize (pos `sub` target)
     u = normalize (up `cross` w)
+    v = normalize (w `cross` u)
 
 generateRays :: Float -> Float -> Float -> Float -> Int -> Float -> Float -> Camera -> [[Ray]]
 generateRays l r b t h ar d cam = map rayRow [0 .. (h - 1)]
@@ -66,20 +69,20 @@ evaluatePhong scene (Mat kA kD kS nP) p d n = foldl cAdd black (map contr (light
     contr light = contrDiff `cAdd` contrAmb `cAdd` contrSpec
       where
         pl = getPos light
-        l = normalize (p `sub` pl)
-        cosTheta = n `dot` l
-        rv = ((2 * (d `dot` n)) `Vecs.scale` n) `sub` d
+        l = normalize (pl `sub` p)
+        cosTheta = l `dot` n
+        rv = normalize (((2 * (d `dot` n)) `Vecs.scale` n) `sub` d)
         cosAlpha = inv l `dot` rv
         contrAmb = (kA * getI light) `Mats.scale` getCol light
         contrDiff = if isVisible scene pl p then max 0 (kD * cosTheta) `Mats.scale` getInt light p else black
-        contrSpec = if isVisible scene pl p then ((max 0 kS * cosAlpha) ^ nP) `Mats.scale` getInt light p else black
+        contrSpec = if isVisible scene pl p && cosTheta > 0 then (kS * (max 0 cosAlpha ^ nP)) `Mats.scale` getInt light p else black 
 
---Debug.trace (show (isVisible scene pl p)) $ (\x -> Debug.trace (show x) x) $
+--Debug.trace (show (isVisible scene pl p)) $  $
 
 isVisible :: Scene -> Vec -> Vec -> Bool
 isVisible scene p1 p2 = isNothing mir || checkDist mir
   where
-    mir = castRay (Ray p1 (normalize d)) scene
+    mir = castRay (Ray (p1 `add` (eps `Vecs.scale` normalize d)) (normalize d)) scene
     checkDist (Just (IR t _ _ _)) = t * t <= sqrMagn d
     d = p2 `sub` p1
 
@@ -87,13 +90,14 @@ render :: Scene -> Float -> Float -> Float -> Float -> Int -> Float -> Float -> 
 render scene l r b t h ar d cam = map (map (rayTrace numRecs scene)) $ generateRays l r b t h ar d cam
 
 main :: IO ()
-main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 50 (40 / 9) 1 cam
+main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 30 (40 / 9) 1 cam
   where
     scene =
       Scene
-        [ Sphere (Vec3 1 (-0.25) 3) 1 dW,
-          Sphere (Vec3 (-2) 0 5) 2.5 dW
+        [ Sphere (Vec3 1.5 0 3) 1 dW,
+          Sphere (Vec3 (-1.5) 0 3) 1 dW,
+          Sphere (Vec3 0.5 0.2 1.5) 0.3 dW
         ]
-        [Point (Vec3 3 (-1) 2) white 40, Point (Vec3 (-1) 2 10) white 20]
+        [Point (Vec3 (-0.25) 0.5 2) white 10]--, Point (Vec3 (-1) 2 10) white 20]
     cam = calculateCam o3 up3 forward3
-    dW = Mat 0.01 1 1 120
+    dW = Mat 0.01 0.2 1 40
