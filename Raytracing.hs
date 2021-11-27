@@ -98,6 +98,6 @@ main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 30 (40 / 9) 1 cam
           Sphere (Vec3 (-1.5) 0 3) 1 dW,
           Sphere (Vec3 0.5 0.2 1.5) 0.3 dW
         ]
-        [Point (Vec3 (-0.25) 0.5 2) white 10]--, Point (Vec3 (-1) 2 10) white 20]
+        [Point (Vec3 (-0.25) 0.5 2) white 10, Point (Vec3 (-3) (-2) 3) white 20]
     cam = calculateCam o3 up3 forward3
-    dW = Mat 0.01 0.2 1 40
+    dW = Mat 0.01 0.2 0.79 40
