@@ -75,29 +75,35 @@ evaluatePhong scene (Mat kA kD kS nP) p d n = foldl cAdd black (map contr (light
         cosAlpha = inv l `dot` rv
         contrAmb = (kA * getI light) `Mats.scale` getCol light
         contrDiff = if isVisible scene pl p then max 0 (kD * cosTheta) `Mats.scale` getInt light p else black
-        contrSpec = if isVisible scene pl p && cosTheta > 0 then (kS * (max 0 cosAlpha ^ nP)) `Mats.scale` getInt light p else black 
+        contrSpec = if isVisible scene pl p && cosTheta > 0 then (kS * (max 0 cosAlpha ^ nP)) `Mats.scale` getInt light p else black
 
 --Debug.trace (show (isVisible scene pl p)) $  $
 
 isVisible :: Scene -> Vec -> Vec -> Bool
 isVisible scene p1 p2 = isNothing mir || checkDist mir
   where
-    mir = castRay (Ray (p1 `add` (eps `Vecs.scale` normalize d)) (normalize d)) scene
-    checkDist (Just (IR t _ _ _)) = t * t <= sqrMagn d
-    d = p2 `sub` p1
+    mir = castRay (Ray (p2 `add` (eps `Vecs.scale` nd)) nd) scene
+    checkDist (Just ir@(IR t _ _ _)) = t * t >= sqrMagn d
+    d = p1 `sub` p2
+    nd = normalize d
 
 render :: Scene -> Float -> Float -> Float -> Float -> Int -> Float -> Float -> Camera -> [[Colour]]
 render scene l r b t h ar d cam = map (map (rayTrace numRecs scene)) $ generateRays l r b t h ar d cam
 
 main :: IO ()
-main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 30 (40 / 9) 1 cam
+main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 160 (48 / 9) 1 cam
   where
     scene =
       Scene
-        [ Sphere (Vec3 1.5 0 3) 1 dW,
-          Sphere (Vec3 (-1.5) 0 3) 1 dW,
-          Sphere (Vec3 0.5 0.2 1.5) 0.3 dW
+        [ Plane (-1) up3 dW,
+          Sphere (Vec3 1.5 0 4) 1 dW,
+          Sphere (Vec3 (-1.5) 0 4) 1 dW,
+          Sphere (Vec3 0.5 0.2 2.5) 0.3 dW
         ]
-        [Point (Vec3 (-0.25) 0.5 2) white 10, Point (Vec3 (-3) (-2) 3) white 20]
+        [Point (Vec3 1.5 3.5 2) white 40]--Point (Vec3 0 0 5) white 20, 
+    shadowScene =
+      Scene
+        [Plane (-2) back3 dW, Sphere (Vec3 0.4 0 2) 0.5 dW]
+        [Point (Vec3 1 0 1.9) white 40]
     cam = calculateCam o3 up3 forward3
-    dW = Mat 0.01 0.2 0.79 40
+    dW = Mat 0.01 0.2 0.79 80

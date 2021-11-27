@@ -3,8 +3,12 @@ module Shapes where
 import Materials as Mats
 import Rays
 import Vectors as Vecs
+import qualified Debug.Trace as Debug
 
-data Shape = Sphere {sP :: Vec, sR :: Float, sMat :: Material}
+zeroMargin :: Float
+zeroMargin = 0.0000000000001
+
+data Shape = Sphere {sP :: Vec, sR :: Float, sMat :: Material} | Plane {pD :: Float, pN :: Vec, mat ::Material}
 
 data IntersectionResult = IR
   { iT :: Float,
@@ -26,3 +30,7 @@ intersect (Ray e d) (Sphere p r mat)
     a = sqrMagn d
     b = (2 `Vecs.scale` d) `dot` (e `sub` p)
     c = sqrMagn (e `sub` p) - r ^ 2
+intersect r@(Ray e d) (Plane pd n mat) = if abs denom < zeroMargin || t < 0 then Nothing else let i = e `add` (t `Vecs.scale` d) in
+  Just (IR t i n mat) where
+    denom = n `dot` d
+    t = (pd - (n `dot` e)) / denom
