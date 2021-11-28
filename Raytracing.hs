@@ -73,9 +73,9 @@ evaluatePhong scene (Mat kA kD kS nP) p d n = foldl cAdd black (map contr (light
         cosTheta = l `dot` n
         rv = normalize (((2 * (d `dot` n)) `Vecs.scale` n) `sub` d)
         cosAlpha = inv l `dot` rv
-        contrAmb = (kA * getI light) `Mats.scale` getCol light
-        contrDiff = if isVisible scene pl p then max 0 (kD * cosTheta) `Mats.scale` getInt light p else black
-        contrSpec = if isVisible scene pl p && cosTheta > 0 then (kS * (max 0 cosAlpha ^ nP)) `Mats.scale` getInt light p else black
+        contrAmb = (getI light `Mats.scale` kA) `cMul` getCol light
+        contrDiff = if isVisible scene pl p then max 0 cosTheta `Mats.scale` (kD `cMul` getInt light p) else black
+        contrSpec = if isVisible scene pl p && cosTheta > 0 then (max 0 cosAlpha ^ nP) `Mats.scale` (kS `cMul` getInt light p) else black
 
 --Debug.trace (show (isVisible scene pl p)) $  $
 
@@ -91,14 +91,14 @@ render :: Scene -> Float -> Float -> Float -> Float -> Int -> Float -> Float -> 
 render scene l r b t h ar d cam = map (map (rayTrace numRecs scene)) $ generateRays l r b t h ar d cam
 
 main :: IO ()
-main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 160 (48 / 9) 1 cam
+main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 30 (48 / 9) 1 cam
   where
     scene =
       Scene
         [ Plane (-1) up3 dW,
           Sphere (Vec3 1.5 0 4) 1 dW,
-          Sphere (Vec3 (-1.5) 0 4) 1 dW,
-          Sphere (Vec3 0.5 0.2 2.5) 0.3 dW
+          Sphere (Vec3 (-1.5) 0 4) 1 dB,
+          Sphere (Vec3 0.5 0.2 2.5) 0.3 sR
         ]
         [Point (Vec3 1.5 3.5 2) white 40]--Point (Vec3 0 0 5) white 20, 
     shadowScene =
@@ -106,4 +106,6 @@ main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 160 (48 / 9) 1 cam
         [Plane (-2) back3 dW, Sphere (Vec3 0.4 0 2) 0.5 dW]
         [Point (Vec3 1 0 1.9) white 40]
     cam = calculateCam o3 up3 forward3
-    dW = Mat 0.01 0.2 0.79 80
+    dW = Mat (0.01 `Mats.scale` white) (0.3 `Mats.scale` white) black 0
+    dB = Mat (RGB 0 0 0.02) (RGB 0 0 0.4) (RGB 0.1 0.1 0.5) 10
+    sR = Mat (RGB 0.02 0 0.001) (RGB 0.37 0 0.05) (RGB 0.8 0 0) 100
