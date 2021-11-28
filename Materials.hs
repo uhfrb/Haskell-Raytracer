@@ -15,7 +15,9 @@ data Material
       { kA :: Colour,
         kD :: Colour,
         kS :: Colour,
-        nP :: Int
+        nP :: Int,
+        cR :: Float,
+        kR :: Colour
       }
   deriving (Show)
 
@@ -41,4 +43,5 @@ cAdd :: Colour -> Colour -> Colour
 cSub :: Colour -> Colour -> Colour
 (RGB r1 g1 b1) `cSub` (RGB r2 g2 b2) = RGB (r1 - r2) (g1 - g2) (b1 - b2)
 
+cMul :: Colour -> Colour -> Colour
 (RGB r1 g1 b1) `cMul` (RGB r2 g2 b2) = RGB (r1 * r2) (g1 * g2) (b1 * b2)

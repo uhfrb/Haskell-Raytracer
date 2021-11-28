@@ -52,7 +52,7 @@ castRay :: Ray -> Scene -> Maybe IntersectionResult
 castRay r scene = foldl closer Nothing (map (intersect r) (obj scene))
   where
     closer :: Maybe IntersectionResult -> Maybe IntersectionResult -> Maybe IntersectionResult
-    closer i1@(Just (IR t1 _ _ _)) i2@(Just (IR t2 _ _ _)) = if t1 < t2 then i1 else i2
+    closer i1@(Just (IR t1 _ _ _ _)) i2@(Just (IR t2 _ _ _ _)) = if t1 < t2 then i1 else i2
     closer Nothing i@(Just (IR {})) = i
     closer ir1 ir2 = ir1
 
@@ -60,18 +60,21 @@ rayTrace :: Int -> Scene -> Ray -> Colour
 rayTrace recsToGo scene r = maybe black (eP scene) mir
   where
     mir = castRay r scene
-    eP sc (IR t p n mat) = evaluatePhong sc mat p (rDir r) n
+    eP sc (IR t p n rv mat) = let pC = evaluatePhong sc mat p (rDir r) n rv; r' = Ray (p `Vecs.add` (eps `Vecs.scale` inv rv)) (inv rv) in
+      if cR mat < zeroMargin || recsToGo == 0 then pC else
+        --Debug.trace (show (rv, rDir r)) $
+        (cR mat `Mats.scale` rayTrace (recsToGo - 1) scene r')
+        `cAdd` ((1 - cR mat) `Mats.scale` pC)
 
-evaluatePhong :: Scene -> Material -> Vec -> Vec -> Vec -> Colour
-evaluatePhong scene None p d n = black
-evaluatePhong scene (Mat kA kD kS nP) p d n = foldl cAdd black (map contr (lights scene))
+evaluatePhong :: Scene -> Material -> Vec -> Vec -> Vec -> Vec -> Colour
+evaluatePhong scene None p d n rv = black
+evaluatePhong scene (Mat kA kD kS nP _ _) p d n rv = foldl cAdd black (map contr (lights scene))
   where
     contr light = contrDiff `cAdd` contrAmb `cAdd` contrSpec
       where
         pl = getPos light
         l = normalize (pl `sub` p)
         cosTheta = l `dot` n
-        rv = normalize (((2 * (d `dot` n)) `Vecs.scale` n) `sub` d)
         cosAlpha = inv l `dot` rv
         contrAmb = (getI light `Mats.scale` kA) `cMul` getCol light
         contrDiff = if isVisible scene pl p then max 0 cosTheta `Mats.scale` (kD `cMul` getInt light p) else black
@@ -83,7 +86,7 @@ isVisible :: Scene -> Vec -> Vec -> Bool
 isVisible scene p1 p2 = isNothing mir || checkDist mir
   where
     mir = castRay (Ray (p2 `add` (eps `Vecs.scale` nd)) nd) scene
-    checkDist (Just ir@(IR t _ _ _)) = t * t >= sqrMagn d
+    checkDist (Just ir@(IR t _ _ _ _)) = t * t >= sqrMagn d
     d = p1 `sub` p2
     nd = normalize d
 
@@ -91,7 +94,7 @@ render :: Scene -> Float -> Float -> Float -> Float -> Int -> Float -> Float -> 
 render scene l r b t h ar d cam = map (map (rayTrace numRecs scene)) $ generateRays l r b t h ar d cam
 
 main :: IO ()
-main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 30 (48 / 9) 1 cam
+main = viewAscii $ render reflectingSpheres (-1) 1 (-0.5) 0.5 30 (48 / 9) 1 cam
   where
     scene =
       Scene
@@ -105,7 +108,24 @@ main = viewAscii $ render scene (-1) 1 (-0.5) 0.5 30 (48 / 9) 1 cam
       Scene
         [Plane (-2) back3 dW, Sphere (Vec3 0.4 0 2) 0.5 dW]
         [Point (Vec3 1 0 1.9) white 40]
+    reflectionScene = Scene
+      [ Plane (-1) up3 fs,
+        Sphere (Vec3 1.5 0.1 3) 1 dW,
+        Sphere (Vec3 (-2.5) 0.1 5) 1 dW,
+        Sphere (Vec3 0.5 0.2 2.5) 0.3 dW
+        ]
+        [Point (Vec3 0 (-0.75) 3) white 40]
+    reflectingSpheres = Scene
+      [ Plane (-1) up3 dW,
+        Sphere (Vec3 1.5 (-1) 3) 1 fs,
+        Sphere (Vec3 (-2.5) 0.1 5) 1 fs,
+        Sphere (Vec3 0.5 0.2 2.5) 0.3 fs,
+        Sphere (Vec3 (-1.5) 0 7) 2 fs,
+        Sphere (Vec3 0 5 2) 3 fs
+        ]
+        [Point (Vec3 0 (-0.75) 3) white 80]
     cam = calculateCam o3 up3 forward3
-    dW = Mat (0.01 `Mats.scale` white) (0.3 `Mats.scale` white) black 0
-    dB = Mat (RGB 0 0 0.02) (RGB 0 0 0.4) (RGB 0.1 0.1 0.5) 10
-    sR = Mat (RGB 0.02 0 0.001) (RGB 0.37 0 0.05) (RGB 0.8 0 0) 100
+    dW = Mat (0.01 `Mats.scale` white) (0.3 `Mats.scale` white) black 0 0  black
+    dB = Mat (RGB 0 0 0.02) (RGB 0 0 0.4) (RGB 0.1 0.1 0.5) 10 0  black
+    sR = Mat (RGB 0.02 0 0.001) (RGB 0.37 0 0.05) (RGB 0.8 0.1 00.1) 100 0.4 (RGB 1 0.1 0.1)
+    fs = Mat black black black 0 1 white
