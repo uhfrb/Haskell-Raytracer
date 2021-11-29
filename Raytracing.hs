@@ -9,9 +9,10 @@ import Rays
 import Shapes
 import Vectors as Vecs
 import View
+import Text.XHtml (height)
 
 numRecs :: Int
-numRecs = 3
+numRecs = 5
 eps :: Float
 eps = 0.001
 
@@ -93,39 +94,88 @@ isVisible scene p1 p2 = isNothing mir || checkDist mir
 render :: Scene -> Float -> Float -> Float -> Float -> Int -> Float -> Float -> Camera -> [[Colour]]
 render scene l r b t h ar d cam = map (map (rayTrace numRecs scene)) $ generateRays l r b t h ar d cam
 
+vpxmin :: Float
+vpxmin = -1
+vpxmax :: Float
+vpxmax = 1
+vpymin :: Float
+vpymin = -0.5
+vpymax :: Float
+vpymax = 0.5
+vpdist :: Float
+vpdist = 1
+heightPx :: Int
+heightPx = 160
+aspectRatio :: Float
+aspectRatio = 48/9
+cam :: Camera
+cam = calculateCam o3 up3 forward3
+
+rtGeneral :: IO ()
+rtGeneral = viewAscii $ renderWithStandartVal scene
+
+rtShadowDemo :: IO ()
+rtShadowDemo = viewAscii $ renderWithStandartVal shadowScene
+
+rtRefl1 :: IO ()
+rtRefl1 = viewAscii $ renderWithStandartVal reflectionScene
+
+rtRefl2 :: IO ()
+rtRefl2 = viewAscii $ renderWithStandartVal reflectingSpheres
+
+renderWithStandartVal :: Scene -> [[Colour]]
+renderWithStandartVal scene = render scene vpxmin vpxmax vpymin vpymax heightPx aspectRatio vpdist cam
+
 main :: IO ()
-main = viewAscii $ render reflectingSpheres (-1) 1 (-0.5) 0.5 30 (48 / 9) 1 cam
+main = viewAscii $ render scene vpxmin vpxmax vpymin vpymax heightPx aspectRatio vpdist cam
   where
-    scene =
-      Scene
-        [ Plane (-1) up3 dW,
-          Sphere (Vec3 1.5 0 4) 1 dW,
-          Sphere (Vec3 (-1.5) 0 4) 1 dB,
-          Sphere (Vec3 0.5 0.2 2.5) 0.3 sR
-        ]
-        [Point (Vec3 1.5 3.5 2) white 40]--Point (Vec3 0 0 5) white 20, 
-    shadowScene =
-      Scene
-        [Plane (-2) back3 dW, Sphere (Vec3 0.4 0 2) 0.5 dW]
-        [Point (Vec3 1 0 1.9) white 40]
-    reflectionScene = Scene
-      [ Plane (-1) up3 fs,
-        Sphere (Vec3 1.5 0.1 3) 1 dW,
-        Sphere (Vec3 (-2.5) 0.1 5) 1 dW,
-        Sphere (Vec3 0.5 0.2 2.5) 0.3 dW
-        ]
-        [Point (Vec3 0 (-0.75) 3) white 40]
-    reflectingSpheres = Scene
-      [ Plane (-1) up3 dW,
-        Sphere (Vec3 1.5 (-1) 3) 1 fs,
-        Sphere (Vec3 (-2.5) 0.1 5) 1 fs,
-        Sphere (Vec3 0.5 0.2 2.5) 0.3 fs,
-        Sphere (Vec3 (-1.5) 0 7) 2 fs,
-        Sphere (Vec3 0 5 2) 3 fs
-        ]
-        [Point (Vec3 0 (-0.75) 3) white 80]
     cam = calculateCam o3 up3 forward3
-    dW = Mat (0.01 `Mats.scale` white) (0.3 `Mats.scale` white) black 0 0  black
-    dB = Mat (RGB 0 0 0.02) (RGB 0 0 0.4) (RGB 0.1 0.1 0.5) 10 0  black
-    sR = Mat (RGB 0.02 0 0.001) (RGB 0.37 0 0.05) (RGB 0.8 0.1 00.1) 100 0.4 (RGB 1 0.1 0.1)
-    fs = Mat black black black 0 1 white
+
+
+scene :: Scene
+scene =
+  Scene
+    [ Plane (-1) up3 diffWhite,
+      Sphere (Vec3 1.5 0 4) 1 diffWhite,
+      Sphere (Vec3 (-1.5) 0 4) 1 diffBlue,
+      Sphere (Vec3 0.5 0.2 2.5) 0.3 specRed
+    ]
+    [Point (Vec3 0 0 5) white 20, Point (Vec3 1.5 3.5 2) white 40]-- 
+
+shadowScene :: Scene
+shadowScene =
+  Scene
+    [Plane (-2) back3 diffWhite, Sphere (Vec3 0.4 0 2) 0.5 diffWhite]
+    [Point (Vec3 1 0 1.9) white 40]
+
+reflectionScene :: Scene
+reflectionScene = Scene
+  [ Plane (-1) up3 fullySpec,
+    Sphere (Vec3 1.5 0.1 3) 1 diffWhite,
+    Sphere (Vec3 (-2.5) 0.1 5) 1 diffWhite,
+    Sphere (Vec3 0.5 0.2 2.5) 0.3 diffWhite
+    ]
+    [Point (Vec3 0 (-0.75) 3) white 40]
+
+reflectingSpheres :: Scene
+reflectingSpheres = Scene
+  [ Plane (-1) up3 diffWhite,
+    Sphere (Vec3 1.5 (-1) 3) 1 fullySpec,
+    Sphere (Vec3 (-2.5) 0.1 5) 1 fullySpec,
+    Sphere (Vec3 0.5 0.2 2.5) 0.3 fullySpec,
+    Sphere (Vec3 (-1.5) 0 7) 2 fullySpec,
+    Sphere (Vec3 0 5 2) 3 fullySpec
+    ]
+    [Point (Vec3 0 (-0.75) 3) white 40]
+
+diffWhite :: Material
+diffWhite = Mat (0.01 `Mats.scale` white) (0.3 `Mats.scale` white) black 0 0  black
+
+diffBlue :: Material
+diffBlue = Mat (RGB 0 0 0.02) (RGB 0 0 0.4) (RGB 0.1 0.1 0.5) 10 0  black
+
+specRed :: Material
+specRed = Mat (RGB 0.02 0 0.001) (RGB 0.37 0 0.05) (RGB 0.8 0.1 00.1) 100 0.4 (RGB 1 0.1 0.1)
+
+fullySpec :: Material
+fullySpec = Mat black black black 0 1 white
