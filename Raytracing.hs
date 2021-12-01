@@ -123,6 +123,9 @@ rtRefl1 = viewAscii $ renderWithStandartVal reflectionScene
 rtRefl2 :: IO ()
 rtRefl2 = viewAscii $ renderWithStandartVal reflectingSpheres
 
+rtSpotlight :: IO ()
+rtSpotlight = viewAscii $ renderWithStandartVal strangeSnowman
+
 renderWithStandartVal :: Scene -> [[Colour]]
 renderWithStandartVal scene = render scene vpxmin vpxmax vpymin vpymax heightPx aspectRatio vpdist cam
 
@@ -167,6 +170,21 @@ reflectingSpheres = Scene
     Sphere (Vec3 0 5 2) 3 fullySpec
     ]
     [Point (Vec3 0 (-0.75) 3) white 40]
+
+strangeSnowman :: Scene
+strangeSnowman = Scene
+  [ Plane (-0.5) up3 diffWhite,
+    Sphere (Vec3 (-1) (-0.5) 2) 0.4 diffWhite,
+    Sphere (Vec3 (-1) 0.15 2) 0.25 diffWhite,
+    Sphere (Vec3 (-1) 0.5 2) 0.1 diffWhite,
+    Sphere (Vec3 (-1) 0.15 1.65) 0.1 diffWhite,
+    Sphere (Vec3 (-1) 0.15 2.35) 0.1 diffWhite,
+    Sphere (Vec3 (-1.35) 0.15 2) 0.1 diffWhite,
+    Sphere (Vec3 (-0.65) 0.15 2) 0.1 diffWhite]
+  [ Point (Vec3 0.75 0 3) (RGB 0.9 0 0.1) 10, Spotlight (Vec3 (-4) (-0.35) 4) white 40 (normalize (Vec3 1 0 (-0.75))) 200 ]
+
+slPlane :: Scene
+slPlane = Scene [Plane (-0.5) up3 diffWhite] [Spotlight (Vec3 (-4) (-0.35) 4) white 40 (normalize (Vec3 1 0 (-0.75))) 200]
 
 diffWhite :: Material
 diffWhite = Mat (0.01 `Mats.scale` white) (0.3 `Mats.scale` white) black 0 0  black
